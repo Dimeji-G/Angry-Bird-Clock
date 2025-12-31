@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Visualizer - Dimroid</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="nav2.css">
+    <link rel="stylesheet" href="navbar.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Particle.js -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-black: #0a0a0a;
+            --secondary-white: #ffffff;
+            --accent-color: #3a86ff;
+            --grid-color: rgba(255, 255, 255, 0.1);
+            --box-color: rgba(58, 134, 255, 0.8);
+            --box-hover: rgba(58, 134, 255, 1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Outfit', 'Arial', sans-serif;
+            background-color: var(--primary-black);
+            color: var(--secondary-white);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px 0px 60px;
+        }
+        
+        .hero-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .hero-section h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #fff, #aaa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero-section p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 30px;
+            color: #ccc;
+            line-height: 1.6;
+        }
+        
+        .current-date {
+            font-size: 1.1rem;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+        
+        .unit-selector {
+            display: flex;
+            background: rgba(30, 30, 30, 0.8);
+            border-radius: 50px;
+            padding: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .unit-btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #aaa;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .unit-btn.active {
+            background: var(--accent-color);
+            color: white;
+        }
+        
+        .unit-btn:hover:not(.active) {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .visualization-container {
+            background: rgba(20, 20, 20, 0.7);
+            border-radius: 16px;
+            padding: 40px;
+            margin-top: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .visualization-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .visualization-header h2 {
+            font-size: 1.8rem;
+        }
+        
+        .year-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #aaa;
+        }
+        
+        .year-indicator .box {
+            width: 20px;
+            height: 20px;
+            background: var(--box-color);
+            border-radius: 4px;
+        }
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .grid-container.days {
+            grid-template-columns: repeat(20, 1fr);
+            gap: 4px;
+        }
+        
+        .time-box {
+            aspect-ratio: 1;
+            background: var(--box-color);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .time-box:hover {
+            background: var(--box-hover);
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        
+        .time-box.completed {
+            background: rgba(100, 100, 100, 0.5);
+        }
+        
+        .time-box.today {
+            background: #ff006e;
+            box-shadow: 0 0 10px rgba(255, 0, 110, 0.5);
+        }
+        
+        .time-box:hover::after {
+            content: attr(data-info);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 100;
+            pointer-events: none;
+            margin-bottom: 5px;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .weeks-color {
+            background: var(--box-color);
+        }
+        
+        .past-color {
+            background: rgba(100, 100, 100, 0.5);
+        }
+        
+        .today-color {
+            background: #ff006e;
+        }
+        
+        .message {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 1rem;
+            color: #ccc;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+            padding: 20px;
+            border-radius: 12px;
+            background: rgba(30, 30, 30, 0.5);
+            border-left: 4px solid var(--accent-color);
+        }
+        
+        /* Bird Animations */
+        @keyframes angryPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        @keyframes eyebrowMove {
+            0%, 100% { transform: rotate(-15deg) translateY(0); }
+            50% { transform: rotate(-20deg) translateY(-3px); }
+        }
+        
+        @keyframes eyebrowMoveLeft {
+            0%, 100% { transform: rotate(15deg) translateY(0); }
+            50% { transform: rotate(20deg) translateY(-3px); }
+        }
+        
+        @keyframes mouthMurmur {
+            0%, 100% { transform: scaleY(1) scaleX(1); }
+            25% { transform: scaleY(1.15) scaleX(0.95); }
+            50% { transform: scaleY(0.85) scaleX(1.08); }
+            75% { transform: scaleY(1.2) scaleX(0.92); }
+        }
+        
+        @keyframes wordFloat1 {
+            0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+            20% { opacity: 1; transform: translate(-10px, -20px) scale(1); }
+            40% { opacity: 0.8; transform: translate(-20px, -40px) scale(1.1); }
+            60% { opacity: 0.5; transform: translate(-30px, -60px) scale(0.9); }
+            100% { opacity: 0; transform: translate(-40px, -80px) scale(0.5); }
+        }
+        
+        @keyframes wordFloat2 {
+            0% { opacity: 0; transform: translate(0, 0) scale(0.5) rotate(0deg); }
+            20% { opacity: 1; transform: translate(-15px, -25px) scale(1) rotate(-5deg); }
+            40% { opacity: 0.8; transform: translate(-25px, -45px) scale(1.05) rotate(-10deg); }
+            60% { opacity: 0.5; transform: translate(-35px, -65px) scale(0.95) rotate(-15deg); }
+            100% { opacity: 0; transform: translate(-45px, -85px) scale(0.5) rotate(-20deg); }
+        }
+        
+        @keyframes wordFloat3 {
+            0% { opacity: 0; transform: translate(0, 0) scale(0.5) rotate(0deg); }
+            20% { opacity: 1; transform: translate(-12px, -22px) scale(1) rotate(5deg); }
+            40% { opacity: 0.8; transform: translate(-22px, -42px) scale(1.08) rotate(10deg); }
+            60% { opacity: 0.5; transform: translate(-32px, -62px) scale(0.92) rotate(15deg); }
+            100% { opacity: 0; transform: translate(-42px, -82px) scale(0.5) rotate(20deg); }
+        }
+        
+        @keyframes veinThrob {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        
+        .angry-bird {
+            animation: angryPulse 2s infinite;
+        }
+        
+        @media (max-width: 1480px) {
+
+            section {
+                position: relative;
+            }
+
+            main {
+                max-width: 500px;
+                border: 1px solid rgb(255, 255, 255);
+                padding: 10px;
+            }
+
+            .hero-section h1 {
+                font-size: 2rem;
+            }
+            
+            .stat-box {
+                min-width: 120px;
+            }
+            
+            .stat-number {
+                font-size: 2rem;
+            }
+            
+            .grid-container {
+                grid-template-columns: repeat(7, 1fr);
+            }
+            
+            .grid-container.days {
+                grid-template-columns: repeat(14, 1fr);
+            }
+            
+            .number-1-clock{
+                /* display: none; */
+                position: fixed !important;
+                opacity: 0.1;
+            }
+
+            .number-1-bird {
+                display: none;
+            }
+        }
+ 
+        @media (max-width: 500px) {
+            main {
+                border:none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle.js Background -->
+    <div id="particles-js"></div>
+    
+    <!-- Main Content -->
+    <main>
+        <div class="hero-section">
+
+            <div style="text-align: center; margin-top: 30px; padding: 25px;">
+                <h2 style="font-size: 2.2rem; margin-bottom: 15px; color: #ff9a00;">Time Waits for No One!</h2>
+                <!-- <p style="font-size: 1.3rem; line-height: 1.7; color: #ccc;">The angry bird is frustrated because <span style="color: #ff4081; font-weight: bold;">time is slipping away</span>. Every tick of the clock is a moment you'll never get back. Let the angry bird's expression remind you to use your time wisely - it's the most precious resource you have.</p> -->
+            </div>
+        </div>
+        
+        <!-- Angry Bird Clock Section -->
+        <section class="bird-clock-section" style="margin-bottom: 80px;">
+            <div class="bird-clock-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 60px; flex-wrap: wrap; border-radius: 16px; padding: 0px 5px;">
+                
+                <!-- Clock 2 (Small) -->
+                <div class="clock-wrapper" style="position: absolute; right: 1%;; top: 30%; width: 200px; height: 200px;">
+                    <div class="clock clock-2" style="width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, #0f3460 0%, #1a1a2e 100%); position: relative; box-shadow: 0 0 25px rgba(0, 150, 255, 0.4), inset 0 0 25px rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(0, 100, 255, 0.3); border: 8px solid #0c2a4d;">
+                        <div class="clock-face" style="position: absolute; width: 100%; height: 100%; border-radius: 50%;">
+                            <div class="number number-12" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(0deg);">12</div>
+                            <div class="number number-1" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(30deg);">1</div>
+                            <div class="number number-2" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(60deg);">2</div>
+                            <div class="number number-3" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(90deg);">3</div>
+                            <div class="number number-4" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(120deg);">4</div>
+                            <div class="number number-5" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(150deg);">5</div>
+                            <div class="number number-6" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(180deg);">6</div>
+                            <div class="number number-7" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(210deg);">7</div>
+                            <div class="number number-8" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(240deg);">8</div>
+                            <div class="number number-9" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(270deg);">9</div>
+                            <div class="number number-10" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(300deg);">10</div>
+                            <div class="number number-11" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 6px rgba(79, 195, 247, 0.7); transform: rotate(330deg);">11</div>
+                            
+                            <div class="date-display" id="dateDisplay2" style="position: absolute; top: 35px; width: 100%; text-align: center; font-size: 0.6rem; color: #ff4081; text-shadow: 0 0 6px rgba(255, 64, 129, 0.7); letter-spacing: 1px;">Tue, Jan 31</div>
+                            
+                            <div class="hand hour-hand" id="hourHand2" style="position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 6px 6px 0 0; z-index: 10; width: 5px; height: 26%; background: #ff4081; transform: translateX(-50%) rotate(0deg); box-shadow: 0 0 6px rgba(255, 64, 129, 0.8);"></div>
+                            <div class="hand minute-hand" id="minuteHand2" style="position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 4px 4px 0 0; z-index: 10; width: 4px; height: 36%; background: #00e5ff; transform: translateX(-50%) rotate(0deg); box-shadow: 0 0 6px rgba(0, 229, 255, 0.8);"></div>
+                            <div class="hand second-hand" id="secondHand2" style="position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 2px 2px 0 0; z-index: 10; width: 2px; height: 41%; background: #ffeb3b; transform: translateX(-50%) rotate(0deg); box-shadow: 0 0 6px rgba(255, 235, 59, 0.8);"></div>
+                            
+                            <div class="clock-center" style="position: absolute; width: 14px; height: 14px; background: #ff9800; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 11; box-shadow: 0 0 12px rgba(255, 152, 0, 0.9);"></div>
+                            
+                            <div class="time-display" id="timeDisplay2" style="position: absolute; bottom: 35px; width: 100%; text-align: center; font-size: 1.1rem; font-weight: bold; color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.8); letter-spacing: 1.5px;">12:00:00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Angry Bird (Small) -->
+                <div class="bird-wrapper" style="position: relative; width: 240px; height: 240px;">
+                    <div class="angry-bird angry-bird-small" style="position: relative; width: 100%; height: 100%;">
+                        <div class="bird-body bird-body-small" style="position: absolute; width: 180px; height: 180px; background: linear-gradient(135deg, #c00 0%, #ff3300 100%); border-radius: 50%; z-index: 2; box-shadow: inset -12px -12px 20px rgba(0, 0, 0, 0.4), inset 6px 6px 12px rgba(255, 100, 100, 0.3), 0 10px 25px rgba(255, 0, 0, 0.5); border: 5px solid #a00;"></div>
+                        <div class="bird-feather" style="position: absolute; width: 24px; height: 60px; background: #c00; border-radius: 12px; top: 60px; left: 24px; z-index: 1; transform: rotate(20deg); box-shadow: -3px 3px 6px rgba(0, 0, 0, 0.3);"></div>
+                        <div class="bird-feather" style="position: absolute; width: 24px; height: 48px; background: #c00; border-radius: 12px; top: 78px; left: 12px; z-index: 1; transform: rotate(10deg); box-shadow: -3px 3px 6px rgba(0, 0, 0, 0.3);"></div>
+                        <div class="bird-eye" style="position: absolute; width: 54px; height: 54px; background: white; border-radius: 50%; top: 48px; left: 108px; z-index: 3; box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                            <div class="bird-pupil" style="position: absolute; width: 30px; height: 30px; background: #111; border-radius: 50%; top: 12px; left: 12px;"></div>
+                        </div>
+                        <div class="bird-eye-left" style="position: absolute; width: 54px; height: 54px; background: white; border-radius: 50%; top: 48px; left: 18px; z-index: 3; box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                            <div class="bird-pupil-left" style="position: absolute; width: 30px; height: 30px; background: #111; border-radius: 50%; top: 12px; left: 12px;"></div>
+                        </div>
+                        <div class="bird-eyebrow" style="position: absolute; width: 60px; height: 15px; background: #330000; border-radius: 9px; top: 36px; left: 102px; z-index: 3; transform: rotate(-15deg); box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5); animation: eyebrowMove 0.5s infinite;"></div>
+                        <div class="bird-eyebrow-left" style="position: absolute; width: 60px; height: 15px; background: #330000; border-radius: 9px; top: 36px; left: 18px; z-index: 3; transform: rotate(15deg); box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5); animation: eyebrowMoveLeft 0.5s infinite;"></div>
+                        <div class="bird-beak" style="position: absolute; width: 72px; height: 48px; background: linear-gradient(to right, #ff9900, #ff6600); border-radius: 50% 0 50% 50%; top: 108px; left: 144px; z-index: 3; transform: rotate(-45deg); box-shadow: 3px 3px 9px rgba(0, 0, 0, 0.4);">
+                            <div class="beak-detail" style="position: absolute; width: 54px; height: 24px; background: #ffcc00; border-radius: 50% 0 50% 50%; top: 12px; left: 6px;"></div>
+                        </div>
+                        <div class="bird-beak-left" style="position: absolute; width: 72px; height: 48px; background: linear-gradient(to left, #ff9900, #ff6600); border-radius: 0 50% 50% 50%; top: 108px; left: -36px; z-index: 3; transform: rotate(45deg); box-shadow: -3px 3px 9px rgba(0, 0, 0, 0.4);">
+                            <div class="beak-detail-left" style="position: absolute; width: 54px; height: 24px; background: #ffcc00; border-radius: 0 50% 50% 50%; top: 12px; right: 6px;"></div>
+                        </div>
+                        <div class="angry-mouth" style="position: absolute; width: 48px; height: 42px; background: #000; border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%; top: 120px; left: 66px; z-index: 4; overflow: visible; box-shadow: inset 0 -9px 18px rgba(0, 0, 0, 0.8); animation: mouthMurmur 0.4s infinite;">
+                            <div class="tongue" style="position: absolute; width: 30px; height: 21px; background: #dd0000; border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; bottom: 3px; left: 9px; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);"></div>
+                        </div>
+                        <div class="angry-words word-1" style="position: absolute; font-size: 1rem; font-weight: bold; color: #ff0000; text-shadow: 0 0 6px rgba(255, 0, 0, 0.9), 0 0 12px rgba(255, 0, 0, 0.6); z-index: 5; opacity: 0; pointer-events: none; top: 24px; left: 192px; animation: wordFloat1 3s infinite;">TICK!</div>
+                        <div class="angry-words word-2" style="position: absolute; font-size: 1rem; font-weight: bold; color: #ff0000; text-shadow: 0 0 6px rgba(255, 0, 0, 0.9), 0 0 12px rgba(255, 0, 0, 0.6); z-index: 5; opacity: 0; pointer-events: none; top: 36px; left: 204px; animation: wordFloat2 3.5s infinite 0.5s;">TOCK!</div>
+                        <div class="angry-words word-3" style="position: absolute; font-size: 1rem; font-weight: bold; color: #ff0000; text-shadow: 0 0 6px rgba(255, 0, 0, 0.9), 0 0 12px rgba(255, 0, 0, 0.6); z-index: 5; opacity: 0; pointer-events: none; top: 48px; left: 198px; animation: wordFloat3 4s infinite 1s;">HURRY!</div>
+                        <div class="angry-words word-4" style="position: absolute; font-size: 1rem; font-weight: bold; color: #ff0000; text-shadow: 0 0 6px rgba(255, 0, 0, 0.9), 0 0 12px rgba(255, 0, 0, 0.6); z-index: 5; opacity: 0; pointer-events: none; top: 30px; left: 186px; animation: wordFloat1 3.8s infinite 1.5s;">NOW!</div>
+                        <div class="angry-vein vein-1" style="position: absolute; height: 5px; background: #990000; border-radius: 2.5px; z-index: 1; width: 30px; top: 42px; left: 60px; transform: rotate(20deg); animation: veinThrob 0.8s infinite;"></div>
+                        <div class="angry-vein vein-2" style="position: absolute; height: 5px; background: #990000; border-radius: 2.5px; z-index: 1; width: 24px; top: 54px; left: 54px; transform: rotate(10deg); animation: veinThrob 0.8s infinite;"></div>
+                        <div class="angry-vein vein-3" style="position: absolute; height: 5px; background: #990000; border-radius: 2.5px; z-index: 1; width: 18px; top: 36px; left: 78px; transform: rotate(-10deg); animation: veinThrob 0.8s infinite;"></div>
+                    </div>
+                </div>
+                
+                <!-- Clock 1 (Medium) -->
+                <div class="clock-wrapper number-1-clock" style="position: relative; width: 280px; height: 280px;">
+                    <div class="clock clock-1" style="width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, #0f3460 0%, #1a1a2e 100%); position: relative; box-shadow: 0 0 30px rgba(0, 150, 255, 0.4), inset 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 100, 255, 0.3); border: 10px solid #0c2a4d;">
+                        <div class="clock-face" style="position: absolute; width: 100%; height: 100%; border-radius: 50%;">
+                            <div class="number number-12" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(0deg);">12</div>
+                            <div class="number number-1" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(30deg);">1</div>
+                            <div class="number number-2" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(60deg);">2</div>
+                            <div class="number number-3" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(90deg);">3</div>
+                            <div class="number number-4" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(120deg);">4</div>
+                            <div class="number number-5" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(150deg);">5</div>
+                            <div class="number number-6" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(180deg);">6</div>
+                            <div class="number number-7" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(210deg);">7</div>
+                            <div class="number number-8" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(240deg);">8</div>
+                            <div class="number number-9" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(270deg);">9</div>
+                            <div class="number number-10" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(300deg);">10</div>
+                            <div class="number number-11" style="position: absolute; width: 100%; height: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #4fc3f7; text-shadow: 0 0 8px rgba(79, 195, 247, 0.7); transform: rotate(330deg);">11</div>
+                            
+                            <div class="date-display" id="dateDisplay1" style="position: absolute; top: 50px; width: 100%; text-align: center; font-size: 0.85rem; color: #ff4081; text-shadow: 0 0 8px rgba(255, 64, 129, 0.7); letter-spacing: 1.5px;">Tuesday, Jan 31</div>
+                            
+                            <div class="hand hour-hand" id="hourHand1" style="position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 8px 8px 0 0; z-index: 10; width: 7px; height: 28%; background: #ff4081; transform: translateX(-50%) rotate(0deg); box-shadow: 0 0 8px rgba(255, 64, 129, 0.8);"></div>
+                            <div class="hand minute-hand" id="minuteHand1" style="position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 6px 6px 0 0; z-index: 10; width: 5px; height: 38%; background: #00e5ff; transform: translateX(-50%) rotate(0deg); box-shadow: 0 0 8px rgba(0, 229, 255, 0.8);"></div>
+                            <div class="hand second-hand" id="secondHand1" style="position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 3px 3px 0 0; z-index: 10; width: 3px; height: 43%; background: #ffeb3b; transform: translateX(-50%) rotate(0deg); box-shadow: 0 0 8px rgba(255, 235, 59, 0.8);"></div>
+                            
+                            <div class="clock-center" style="position: absolute; width: 18px; height: 18px; background: #ff9800; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 11; box-shadow: 0 0 15px rgba(255, 152, 0, 0.9);"></div>
+                            
+                            <div class="time-display" id="timeDisplay1" style="position: absolute; bottom: 50px; width: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; color: #00e5ff; text-shadow: 0 0 12px rgba(0, 229, 255, 0.8); letter-spacing: 2px;">12:00:00</div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            
+        </section>
+        
+        <div class="controls">
+            <div class="unit-selector">
+                <button class="unit-btn active" data-unit="weeks">Weeks</button>
+                <button class="unit-btn" data-unit="days">Days</button>
+            </div>
+        </div>
+        
+        <div class="visualization-container">
+            <div class="visualization-header">
+                <h2 id="visualizationTitle">52 Weeks of the Year</h2>
+                <div class="year-indicator">
+                    <div class="box"></div>
+                    <span>1 year = 52 weeks</span>
+                </div>
+            </div>
+            
+            <div class="grid-container" id="timeGrid">
+                <!-- Time boxes will be generated here -->
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color weeks-color"></div>
+                    <span>Future weeks</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color past-color"></div>
+                    <span>Past weeks</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color today-color"></div>
+                    <span>Current week</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="message">
+            <p><strong>Time perception:</strong> At the scale of a year, 52 weeks might seem like a lot. But when visualized, it becomes clear just how finite this time really is. Each box represents a week of your year - how will you use them?</p>
+            <p style="margin-top: 15px;">Switching to days (365) reveals an even more granular perspective on the passage of time.</p>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script src="nav.js"></script>
+    <script>
+        // Initialize Particle.js
+        document.addEventListener('DOMContentLoaded', function() {
+            particlesJS("particles-js", {
+                particles: {
+                    number: { value: 80, density: { enable: true, value_area: 800 } },
+                    color: { value: "#ffffff" },
+                    shape: { type: "circle" },
+                    opacity: { value: 0.1, random: true },
+                    size: { value: 3, random: true },
+                    line_linked: {
+                        enable: true,
+                        distance: 150,
+                        color: "#3a86ff",
+                        opacity: 0.1,
+                        width: 1
+                    },
+                    move: { enable: true, speed: 2, direction: "none", random: true }
+                },
+                interactivity: {
+                    detect_on: "canvas",
+                    events: {
+                        onhover: { enable: true, mode: "repulse" },
+                        onclick: { enable: true, mode: "push" }
+                    }
+                },
+                retina_detect: true
+            });
+            
+            // Initialize the clock
+            updateClock();
+            setInterval(updateClock, 10);
+            
+            // Initialize the visualization
+            initVisualization();
+        });
+        
+        // Update clock function
+        function updateClock() {
+            const now = new Date();
+            
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const milliseconds = now.getMilliseconds();
+            
+            const secondAngle = (seconds + milliseconds / 1000) * 6;
+            const minuteAngle = (minutes + seconds / 60) * 6;
+            const hourAngle = (hours % 12 + minutes / 60) * 30;
+            
+            // Update Clock 1 (Medium)
+            const hourHand1 = document.getElementById('hourHand1');
+            const minuteHand1 = document.getElementById('minuteHand1');
+            const secondHand1 = document.getElementById('secondHand1');
+            const timeDisplay1 = document.getElementById('timeDisplay1');
+            const dateDisplay1 = document.getElementById('dateDisplay1');
+            
+            if (hourHand1) hourHand1.style.transform = `translateX(-50%) rotate(${hourAngle}deg)`;
+            if (minuteHand1) minuteHand1.style.transform = `translateX(-50%) rotate(${minuteAngle}deg)`;
+            if (secondHand1) secondHand1.style.transform = `translateX(-50%) rotate(${secondAngle}deg)`;
+            
+            if (timeDisplay1) {
+                const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                timeDisplay1.textContent = timeString;
+            }
+            
+            if (dateDisplay1) {
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const dateString = now.toLocaleDateString('en-US', options);
+                dateDisplay1.textContent = dateString;
+            }
+            
+            // Update Clock 2 (Small)
+            const hourHand2 = document.getElementById('hourHand2');
+            const minuteHand2 = document.getElementById('minuteHand2');
+            const secondHand2 = document.getElementById('secondHand2');
+            const timeDisplay2 = document.getElementById('timeDisplay2');
+            const dateDisplay2 = document.getElementById('dateDisplay2');
+            
+            if (hourHand2) hourHand2.style.transform = `translateX(-50%) rotate(${hourAngle}deg)`;
+            if (minuteHand2) minuteHand2.style.transform = `translateX(-50%) rotate(${minuteAngle}deg)`;
+            if (secondHand2) secondHand2.style.transform = `translateX(-50%) rotate(${secondAngle}deg)`;
+            
+            if (timeDisplay2) {
+                const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                timeDisplay2.textContent = timeString;
+            }
+            
+            if (dateDisplay2) {
+                const options = { weekday: 'short', month: 'short', day: 'numeric' };
+                const dateString = now.toLocaleDateString('en-US', options);
+                dateDisplay2.textContent = dateString;
+            }
+            
+            const birdBody = document.querySelector('.bird-body');
+            if (birdBody) {
+                const intensity = 1 + (seconds / 60) * 0.1;
+                birdBody.style.transform = `scale(${intensity})`;
+                const redValue = 200 + Math.floor((seconds / 60) * 55);
+                birdBody.style.background = `linear-gradient(135deg, rgb(${redValue}, 0, 0) 0%, rgb(255, ${50 + seconds}, 0) 100%)`;
+            }
+            
+            const birdBodySmall = document.querySelector('.bird-body-small');
+            if (birdBodySmall) {
+                const intensity = 1 + (seconds / 60) * 0.1;
+                birdBodySmall.style.transform = `scale(${intensity})`;
+                const redValue = 200 + Math.floor((seconds / 60) * 55);
+                birdBodySmall.style.background = `linear-gradient(135deg, rgb(${redValue}, 0, 0) 0%, rgb(255, ${50 + seconds}, 0) 100%)`;
+            }
+        }
+        
+        // Current date calculations
+        const today = new Date();
+        
+        // Calculate current week of the year (0-indexed, so week 1 = index 0)
+        const startOfYear = new Date(today.getFullYear(), 0, 1);
+        const dayOfYear = Math.floor((today - startOfYear) / (24 * 60 * 60 * 1000)) + 1;
+        const currentWeek = Math.ceil(dayOfYear / 7);
+        
+        // Get current day of year (1-365)
+        const currentDay = dayOfYear;
+        
+        // Current hour of the day
+        const currentHour = today.getHours();
+        
+        let currentUnit = 'weeks';
+        
+        function initVisualization() {
+            // Set up unit selector buttons
+            const unitButtons = document.querySelectorAll('.unit-btn');
+            unitButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    unitButtons.forEach(b => b.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Get the unit
+                    currentUnit = this.getAttribute('data-unit');
+                    
+                    // Update visualization
+                    updateVisualization(currentUnit);
+                });
+            });
+            
+            // Initial visualization
+            updateVisualization('weeks');
+        }
+        
+        function updateVisualization(unit) {
+            const timeGrid = document.getElementById('timeGrid');
+            const title = document.getElementById('visualizationTitle');
+            const yearIndicator = document.querySelector('.year-indicator span');
+            const weeksCount = document.getElementById('weeksCount');
+            const daysCount = document.getElementById('daysCount');
+            const hoursCount = document.getElementById('hoursCount');
+            
+            // Clear the grid
+            timeGrid.innerHTML = '';
+            
+            // Update stats
+            if (unit === 'weeks') {
+                title.textContent = '52 Weeks of the Year';
+                yearIndicator.textContent = '1 year = 52 weeks';
+                timeGrid.className = 'grid-container';
+                createWeeksGrid();
+            } else if (unit === 'days') {
+                title.textContent = '365 Days of the Year';
+                yearIndicator.textContent = '1 year = 365 days';
+                timeGrid.className = 'grid-container days';
+                createDaysGrid();
+            }
+        }
+        
+        function createWeeksGrid() {
+            const timeGrid = document.getElementById('timeGrid');
+            
+            for (let i = 1; i <= 52; i++) {
+                const timeBox = document.createElement('div');
+                timeBox.className = 'time-box';
+                
+                if (i < currentWeek) {
+                    timeBox.classList.add('completed');
+                    timeBox.setAttribute('data-info', `Week ${i} (Past)`);
+                } else if (i === currentWeek) {
+                    timeBox.classList.add('today');
+                    timeBox.setAttribute('data-info', `Week ${i} (Current Week)`);
+                } else {
+                    timeBox.setAttribute('data-info', `Week ${i}`);
+                }
+                
+                timeGrid.appendChild(timeBox);
+            }
+        }
+        
+        function createDaysGrid() {
+            const timeGrid = document.getElementById('timeGrid');
+            const daysInYear = 365;
+            
+            for (let i = 1; i <= daysInYear; i++) {
+                const timeBox = document.createElement('div');
+                timeBox.className = 'time-box';
+                
+                if (i < currentDay) {
+                    timeBox.classList.add('completed');
+                    timeBox.setAttribute('data-info', `Day ${i} (Past)`);
+                } else if (i === currentDay) {
+                    timeBox.classList.add('today');
+                    timeBox.setAttribute('data-info', `Day ${i} (Today)`);
+                } else {
+                    timeBox.setAttribute('data-info', `Day ${i}`);
+                }
+                
+                timeGrid.appendChild(timeBox);
+            }
+        }
+        
+        function animateCount(element, target) {
+            const current = parseInt(element.textContent.replace(/,/g, ''));
+            const increment = target > current ? 1 : -1;
+            const step = Math.abs(target - current) / 50; // Animation steps
+            
+            let currentValue = current;
+            const timer = setInterval(() => {
+                currentValue += step * increment;
+                
+                if ((increment === 1 && currentValue >= target) || 
+                    (increment === -1 && currentValue <= target)) {
+                    currentValue = target;
+                    clearInterval(timer);
+                }
+                
+                // Format number with commas
+                element.textContent = Math.round(currentValue).toLocaleString();
+            }, 20);
+        }
+        
+        // Update the existing navbar hamburger functionality
+        const hamburger = document.getElementById('navbarHamburger');
+        const menuToggle = document.getElementById('menuToggle');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const mobileLinks = menuOverlay ? menuOverlay.querySelectorAll('a') : [];
+        const closeButton = document.querySelector('.close-btn');
+
+        function closeMobileMenu() {
+          if (menuOverlay) {
+            menuOverlay.classList.remove('active');
+            menuToggle.classList.remove('active');
+          }
+        }
+
+        function openMobileMenu() {
+          if (menuOverlay) {
+            menuOverlay.classList.add('active');
+            menuToggle.classList.add('active');
+          }
+        }
+
+        if (hamburger && menuOverlay) {
+          hamburger.addEventListener('click', function() {
+            if (menuOverlay.classList.contains('active')) {
+              closeMobileMenu();
+            } else {
+              openMobileMenu();
+            }
+          });
+
+          // Close menu when a link is clicked
+          mobileLinks.forEach(link => {
+            link.addEventListener('click', closeMobileMenu);
+          });
+
+          // Close menu when clicking outside
+          menuOverlay.addEventListener('click', function(e) {
+            if (e.target === menuOverlay) {
+              closeMobileMenu();
+            }
+          });
+
+          // Close menu when X button is clicked
+          if (closeButton) {
+            closeButton.addEventListener('click', closeMobileMenu);
+          }
+
+          // Hide menu if window resized to desktop
+          window.addEventListener('resize', function() {
+            if (window.innerWidth > 900) {
+              closeMobileMenu();
+            }
+          });
+        }
+
+        // Close menu on escape key
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && menuOverlay && menuOverlay.classList.contains('active')) {
+            closeMobileMenu();
+          }
+        });
+    </script>
+</body>
+</html>
